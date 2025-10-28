@@ -1,0 +1,83 @@
+---
+name: Validar Repositorios GitHub
+
+'on':
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  validar-repos:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Obtener repositorios
+        run: |
+          echo "🔍 Consultando API de GitHub..."
+
+          curl --request GET \
+            --url "https://api.github.com/orgs/mapfre-tech/repos?per_page=100" \
+            --header "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" \
+            --header "Accept: application/vnd.github+json" \
+            --header "User-Agent: inventory-ntt" \
+            --header "X-GitHub-Api-Version: 2022-11-28" \
+            --silent \
+            --show-error \
+            --fail \
+            --output repos.json
+
+          TOTAL=$(jq length repos.json)
+          echo "✅ Conexión exitosa - $TOTAL repositorios encontrados"
+
+      - name: Mostrar repositorios
+        run: |
+          echo ""
+          echo "📋 REPOSITORIOS"
+          echo "========================================"
+
+          jq -r '.[] | "\(.name)|\(.private)|\(.language // "N/A")|\((.size/1024)|floor)|\(.open_issues_count)|\(.updated_at[0:16]|gsub("T";" "))"' repos.json |
+          sort -t'|' -k6 -r |
+          awk -F'|' 'BEGIN {
+            printf "%-40s %-8s %-12s %-8s %-7s %-17s\n",
+              "NOMBRE","PRIVADO","LENGUAJE","TAMAÑO","ISSUES","ACTUALIZADO"
+            printf "%-40s %-8s %-12s %-8s %-7s %-17s\n",
+              "========================================",
+              "========","============","========","=======","================="
+          }
+          {
+            private = ($2 == "true") ? "Sí" : "No"
+            size = ($4 > 0) ? $4" MB" : "<1 MB"
+            printf "%-40s %-8s %-12s %-8s %-7s %-17s\n",
+              $1, private, $3, size, $5, $6
+          }'
+
+      - name: Mostrar estadísticas
+        run: |
+          echo ""
+          echo "📊 ESTADÍSTICAS"
+          echo "========================================"
+
+          TOTAL=$(jq length repos.json)
+          PRIVADOS=$(jq '[.[] | select(.private == true)] | length' repos.json)
+          PUBLICOS=$(jq '[.[] | select(.private == false)] | length' repos.json)
+
+          echo "Total: $TOTAL"
+          echo "  • Privados: $PRIVADOS"
+          echo "  • Públicos: $PUBLICOS"
+          echo ""
+          echo "Lenguajes:"
+
+          jq -r '.[].language // empty' repos.json |
+          sort | uniq -c | sort -rn | head -5 |
+          awk '{printf "  • %-15s: %d repos\n", $2, $1}'
+
+          echo ""
+          echo "✅ Validación completada"
+
+      - name: Guardar artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: repos-info
+          path: repos.json
+          retention-days: 7
