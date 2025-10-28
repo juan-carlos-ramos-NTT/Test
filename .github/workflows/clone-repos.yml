@@ -12,6 +12,18 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+      - name: Verificar token (debug)
+        run: |
+          echo "🔍 Verificando token..."
+          if [ -z "${{ secrets.GH_TOKEN_MAPFRE }}" ]; then
+            echo "❌ ERROR: GH_TOKEN_MAPFRE está vacío o no existe"
+            exit 1
+          else
+            echo "✅ Token existe (primeros 10 caracteres): ${GH_TOKEN_MAPFRE:0:10}..."
+          fi
+        env:
+          GH_TOKEN_MAPFRE: ${{ secrets.GH_TOKEN_MAPFRE }}
+
       - name: Obtener repositorios
         run: |
           echo "🔍 Consultando API de GitHub..."
