@@ -1,0 +1,16 @@
+name: Test Connection to MAPFRE Org
+
+on:
+  workflow_dispatch:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest  # o 'self-hosted' si lo ejecuta MAPFRE
+    steps:
+      - name: Test authenticated connection to MAPFRE GitHub org
+        run: |
+          echo "Testing GitHub API connection to mapfre-tech repos..."
+          curl --request GET \
+            --url https://api.github.com/orgs/mapfre-tech/repos \
+            --header "Authorization: Bearer ${{ secrets.GH_TOKEN_MAPFRE }}" \
+            --header "User-Agent: inventory-ntt"
