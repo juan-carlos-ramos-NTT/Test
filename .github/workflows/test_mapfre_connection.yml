@@ -13,4 +13,4 @@ jobs:
           curl --request GET \
             --url https://api.github.com/orgs/mapfre-tech/repos \
             --header "Authorization: Bearer ${{ secrets.GH_TOKEN_MAPFRE }}" \
-            --header "User-Agent: inventory-ntt"
+            --header "User-Agent: github-actions/connection-test"
